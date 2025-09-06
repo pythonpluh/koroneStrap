@@ -25,7 +25,6 @@ def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
 def get_system_info():
-    """Get system information for cross-platform compatibility"""
     system = platform.system().lower()
     return {
         'is_windows': system == 'windows',
@@ -35,7 +34,6 @@ def get_system_info():
     }
 
 def get_installation_paths():
-    """Get platform-specific installation paths"""
     sys_info = get_system_info()
     
     if sys_info['is_windows']:
@@ -54,7 +52,7 @@ def get_installation_paths():
             os.path.expanduser(f"~/.local/share/wineprefixes/projectx/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a")
         ]
     elif sys_info['is_macos']:
-        # macOS with Wine/CrossOver/Parallels
+        # macOS with Wine/CrossOver
         user = os.getenv('USER', 'user')
         return [
             # Wine on macOS
@@ -63,16 +61,12 @@ def get_installation_paths():
             # CrossOver
             os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a"),
             os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a"),
-            # Parallels (if running Windows VM)
-            os.path.expanduser(f"~/Parallels/*.pvm/Windows*/Users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a"),
-            os.path.expanduser(f"~/Parallels/*.pvm/Windows*/Users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a")
         ]
     else:
         print(Fore.YELLOW + f"[!] Unsupported system: {sys_info['system_name']}")
         return []
 
 def get_executable_paths(folder):
-    """Get platform-specific executable paths"""
     sys_info = get_system_info()
     base_paths = get_installation_paths()
     exe_paths = []
@@ -85,27 +79,6 @@ def get_executable_paths(folder):
             exe_paths.append(os.path.join(base_path, folder, "ProjectXPlayerBeta.exe"))
     
     return exe_paths
-
-def get_fps_unlocker_paths():
-    """Get platform-specific FPS unlocker paths"""
-    sys_info = get_system_info()
-    
-    if sys_info['is_windows']:
-        return [
-            "pekorafpsunlocker.exe",
-            os.path.join(os.path.dirname(sys.executable), "pekorafpsunlocker.exe"),
-            os.path.join(os.getcwd(), "pekorafpsunlocker.exe")
-        ]
-    else:
-        # For Linux/macOS, also check for the exe to run with Wine
-        return [
-            "pekorafpsunlocker.exe",
-            os.path.join(os.path.dirname(sys.executable), "pekorafpsunlocker.exe"),
-            os.path.join(os.getcwd(), "pekorafpsunlocker.exe"),
-            # Also check for potential native versions
-            "pekorafpsunlocker",
-            "./pekorafpsunlocker"
-        ]
 
 def load_fastflags():
     if not os.path.exists(FASTFLAGS_FILE):
@@ -328,53 +301,6 @@ def import_fastflags():
     
     press_any_key()
 
-def launch_fps_unlocker():
-    clear()
-    sys_info = get_system_info()
-    print(Fore.CYAN + "Enable FPS Unlock")
-    
-    # check for unlockerrrr
-    fps_unlocker_paths = get_fps_unlocker_paths()
-    
-    exe_path = None
-    for path in fps_unlocker_paths:
-        if os.path.isfile(path):
-            exe_path = path
-            break
-    
-    if exe_path:
-        try:
-            print(Fore.YELLOW + "[*] Launching FPS Unlocker...")
-            
-            if sys_info['is_windows']:
-                subprocess.Popen([exe_path])
-            elif sys_info['is_linux']:
-                # Try Wine first, then native if available
-                if exe_path.endswith('.exe'):
-                    subprocess.Popen(["wine64", exe_path])
-                else:
-                    subprocess.Popen([exe_path])
-            elif sys_info['is_macos']:
-                # macOS with wine or native
-                if exe_path.endswith('.exe'):
-                    # try Wine on macOS
-                    subprocess.Popen(["wine64", exe_path])
-                else:
-                    subprocess.Popen([exe_path])
-            
-            print(Fore.GREEN + "[*] FPS Unlocker launched successfully!")
-        except Exception as e:
-            print(Fore.RED + f"Error while launching FPS Unlocker:\n{e}")
-            if not sys_info['is_windows']:
-                print(Fore.YELLOW + "Make sure Wine is installed and configured properly.")
-    else:
-        print(Fore.RED + "Could not find pekorafpsunlocker.exe")
-        print(Fore.YELLOW + "Searched paths:")
-        for path in fps_unlocker_paths:
-            print(Fore.YELLOW + f"  - {path}")
-    
-    press_any_key()
-
 def debug():
     clear()
     sys_info = get_system_info()
@@ -482,25 +408,20 @@ def main_menu():
             (4, 123, 220),
             (3, 98, 210),
             (2, 74, 200),
-            (1, 58, 195),
-            (0, 50, 185),
-            (13, 65, 225),
         ]
 
         ascii_logo = [
-            "              __          _______ __                    ",
-            " .-----.-----|  |--.-----|   _   |  |_.----.---.-.-----. ",
-            " |  _  |  -__|    <|  _  |   1___|   _|   _|  _  |  _  | ",
-            " |   __|_____|__|__|_____|____   |____|__| |___._|   __| ",
-            " |__|                    |:  1   |               |__|    ",
-            "                         |::.. . |                       ",
-            "                         `-------'                       "
+            "    ** **                         ",
+            "   / //_/___  _________  ____  ___ ",
+            "  / ,< / ** \\/ **_/ ** \\/ ** \\/ * \\",
+            " / /| / /*/ / /  / /_/ / / / /  __/",
+            "/_/ |_\\____/_/   \\____/_/ /_/\\___/"
         ]
 
         for (r, g, b), line in zip(gradient, ascii_logo):
             print(f"\033[38;2;{r};{g};{b}m{line}\033[0m")
 
-        print(Fore.BLUE + "Made with <3 by usertest on Pekora")
+        print(Fore.BLUE + "Made with <3 by usertest on Korone")
         
         # platform info
         platform_name = "Windows" if sys_info['is_windows'] else ("Linux" if sys_info['is_linux'] else ("macOS" if sys_info['is_macos'] else "Unknown"))
@@ -515,7 +436,6 @@ def main_menu():
         print(Fore.GREEN + "3 - 2020")
         print(Fore.GREEN + "4 - 2021")
         print(Fore.GREEN + "5 - Set FastFlags")
-        print(Fore.GREEN + "6 - Enable FPS Unlock")
         print(Fore.RED + "0 - Exit")
         
         choice = input(Fore.WHITE + "\nEnter your choice: ")
@@ -530,8 +450,6 @@ def main_menu():
             launch_version("2021M")
         elif choice == "5":
             ask_fastflags()
-        elif choice == "6":
-            launch_fps_unlocker()
         elif choice == "debug":
             debug()
         elif choice == "0":
