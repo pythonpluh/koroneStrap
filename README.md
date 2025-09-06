@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="810" height="789" alt="gradient korone wowie" src="https://github.com/user-attachments/assets/c0477fe6-8ed3-48dc-9404-ff9463d542ca" />
+  <img width="96" height="96" alt="gradient korone wowie" src="https://github.com/user-attachments/assets/c0477fe6-8ed3-48dc-9404-ff9463d542ca" />
 </p>
 <h1 align="center">koroneStrap</h1>
 
