@@ -1,21 +1,20 @@
 <p align="center">
-<img width="96" height="96" alt="pekoStrap Updated" src="https://github.com/user-attachments/assets/d8b23f7b-80a3-4384-b4a8-7d4ffd42d855" />
-
+  <img width="810" height="789" alt="gradient korone wowie" src="https://github.com/user-attachments/assets/c0477fe6-8ed3-48dc-9404-ff9463d542ca" />
 </p>
-<h1 align="center">pekoStrap</h1>
+<h1 align="center">koroneStrap</h1>
 
 <p align="center">
-  <i>A custom bootstrapper for Pekora, with FastFlags and Linux support.</i>
+  <i>A custom bootstrapper for Korone, with FastFlags and Linux support.</i>
 </p>
 
 <p align="center">
-  <a href="https://github.com/WindowsMI/pekoStrap/releases">
+  <a href="https://github.com/reprovision/koroneStrap/releases">
     <img src="https://img.shields.io/github/v/release/reprovision/pekoStrap?style=flat-square&color=blue" alt="Latest Release">
   </a>
-  <a href="https://github.com/WindowsMI/pekoStrap/stargazers">
+  <a href="https://github.com/reprovision/koroneStrap/stargazers">
     <img src="https://img.shields.io/github/stars/reprovision/pekoStrap?style=flat-square&color=yellow" alt="Stars">
   </a>
-  <a href="https://github.com/WindowsMI/pekoStrap/issues">
+  <a href="https://github.com/reprovision/koroneStrap/issues">
     <img src="https://img.shields.io/github/issues/reprovision/pekoStrap?style=flat-square&color=red" alt="Issues">
   </a>
 </p>
@@ -26,26 +25,18 @@
 
 ---
 
-## 💔 R.I.P
-- As of 31 August, 2025, Pekora has shut down. Thank you to everyone who used pekoStrap and helped build it.
-
-
----
-
 ## 🚀 Installation
-- Go to the [Releases](https://github.com/yourname/pekoStrap/releases) tab and download **`pekoStrap.exe`**  
-- Or run **`pekoStrap.py`** directly from the repo
+- Go to the [Releases](https://github.com/reprovision/koroneStrap/releases) tab and download **`koroneStrap.exe`**  
+- Or run **`koroneStrap.py`** directly from the repo
 
 For Linux:  
-- Install [Pekora](https://github.com/shikataganaii/Pekora-Bootstrapper/releases) via [Wine](https://www.winehq.org).
-- Or use [Pekora's Unofficial Linux Installer](https://github.com/johnhamilcar/PekoraBootstrapperLinux).
+- Install [Korone](https://example.com) via [Wine](https://www.winehq.org).
 
 ---
 
 ## ⭐ Features
 - FastFlags support
 - macOS + Linux support
-- FPS unlocker
 
 ---
 
