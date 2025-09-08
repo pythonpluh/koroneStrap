@@ -3,14 +3,13 @@ import subprocess
 import sys
 import json
 import platform
+import glob
 from colorama import Fore, Style, init
 
-# Init colorama
 init(autoreset=True)
 
-FASTFLAGS_FILE = "fastFlags.json"  # fflags
+FASTFLAGS_FILE = "fastFlags.json"
 
-# fixed press any key (i think??)
 if os.name == "nt":
     import msvcrt
     def press_any_key(prompt="Press any key to continue..."):
@@ -33,52 +32,56 @@ def get_system_info():
         'system_name': system
     }
 
-def get_installation_paths():
+def get_version_roots():
     sys_info = get_system_info()
-    
+    roots = []
     if sys_info['is_windows']:
-        return [
-            os.path.expandvars(r"%localappdata%\ProjectX\Versions\version-7e043f9d229d4b9a"),
-            os.path.expandvars(r"%localappdata%\Pekora\Versions\version-7e043f9d229d4b9a")
-        ]
+        roots.extend([
+            os.path.expandvars(r"%localappdata%\ProjectX\Versions"),
+            os.path.expandvars(r"%localappdata%\Pekora\Versions"),
+        ])
     elif sys_info['is_linux']:
-        # Linux with Wine
         user = os.getenv('USER', 'user')
-        return [
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a"),
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a"),
-            # Alternative Wine prefix locations
-            os.path.expanduser(f"~/.local/share/wineprefixes/pekora/drive_c/users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a"),
-            os.path.expanduser(f"~/.local/share/wineprefixes/projectx/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a")
-        ]
+        roots.extend([
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
+            os.path.expanduser(f"~/.local/share/wineprefixes/pekora/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
+            os.path.expanduser(f"~/.local/share/wineprefixes/projectx/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
+        ])
     elif sys_info['is_macos']:
-        # macOS with Wine/CrossOver
         user = os.getenv('USER', 'user')
-        return [
-            # Wine on macOS
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a"),
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a"),
-            # CrossOver
-            os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/ProjectX/Versions/version-7e043f9d229d4b9a"),
-            os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/Pekora/Versions/version-7e043f9d229d4b9a"),
-        ]
-    else:
-        print(Fore.YELLOW + f"[!] Unsupported system: {sys_info['system_name']}")
-        return []
+        roots.extend([
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
+        ])
+        roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/ProjectX/Versions")))
+        roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/Pekora/Versions")))
+    return [p for p in roots if isinstance(p, str)]
+
+def iter_version_dirs():
+    for root in get_version_roots():
+        if os.path.isdir(root):
+            for d in sorted(glob.glob(os.path.join(root, "*"))):
+                if os.path.isdir(d):
+                    yield d
+
+def get_clientsettings_targets():
+    targets = []
+    for ver in iter_version_dirs():
+        for folder in ["2020L", "2021M"]:
+            folder_path = os.path.join(ver, folder)
+            if os.path.isdir(folder_path):
+                client_dir = os.path.join(folder_path, "ClientSettings")
+                settings_path = os.path.join(client_dir, "ClientAppSettings.json")
+                targets.append((client_dir, settings_path, folder))
+    return targets
 
 def get_executable_paths(folder):
-    sys_info = get_system_info()
-    base_paths = get_installation_paths()
-    exe_paths = []
-    
-    for base_path in base_paths:
-        if sys_info['is_windows']:
-            exe_paths.append(os.path.join(base_path, folder, "ProjectXPlayerBeta.exe"))
-        else:
-            # Linux/macOS with Wine - same executable name but different execution method
-            exe_paths.append(os.path.join(base_path, folder, "ProjectXPlayerBeta.exe"))
-    
-    return exe_paths
+    paths = []
+    for ver in iter_version_dirs():
+        exe = os.path.join(ver, folder, "ProjectXPlayerBeta.exe")
+        paths.append(exe)
+    return paths
 
 def load_fastflags():
     if not os.path.exists(FASTFLAGS_FILE):
@@ -102,32 +105,21 @@ def save_fastflags(fastflags):
 
 def apply_fastflags(fastflags):
     success = False
-    exe_paths = get_installation_paths()
-    
-    for base_path in exe_paths:
-        if os.path.exists(base_path):
-            # version folderz
-            for folder in ["2020L", "2021M"]:
-                folder_path = os.path.join(base_path, folder)
-                if os.path.exists(folder_path):
-                    # ty zyth for helpinggg <3
-                    client_settings_dir = os.path.join(folder_path, "ClientSettings")
-                    try:
-                        os.makedirs(client_settings_dir, exist_ok=True)
-                        
-                        settings_path = os.path.join(client_settings_dir, "ClientAppSettings.json")
-                        
-                        if os.path.exists(settings_path):
-                            os.remove(settings_path)
-                        
-                        with open(settings_path, "w") as f:
-                            json.dump(fastflags, f, indent=2)
-                        print(Fore.GREEN + f"[*] Applied FastFlags to {folder}/ClientSettings")
-                        print(Fore.CYAN + f"[*] Location: {settings_path}")
-                        success = True
-                    except Exception as e:
-                        print(Fore.RED + f"[!] Failed to write to {folder}: {e}")
-    
+    for client_dir, settings_path, folder in get_clientsettings_targets():
+        try:
+            os.makedirs(client_dir, exist_ok=True)
+            if os.path.exists(settings_path):
+                try:
+                    os.replace(settings_path, settings_path + ".bak")
+                except Exception:
+                    pass
+            with open(settings_path, "w") as f:
+                json.dump(fastflags, f, indent=2)
+            print(Fore.GREEN + f"[*] Applied FastFlags to {folder}/ClientSettings")
+            print(Fore.CYAN + f"[*] Location: {settings_path}")
+            success = True
+        except Exception as e:
+            print(Fore.RED + f"[!] Failed to write to {folder}: {e}")
     return success
 
 
@@ -140,25 +132,17 @@ def apply_fastflags(fastflags):
 
 def auto_detect_value_type(value_str):
     value_str = value_str.strip()
-    
-    # boooooooolean
     if value_str.lower() in ['true', 'false']:
         return value_str.lower() == 'true'
-    
-    # int 
     try:
         if '.' not in value_str and 'e' not in value_str.lower():
             return int(value_str)
     except ValueError:
         pass
-    
-    # fLOATIES
     try:
         return float(value_str)
     except ValueError:
         pass
-    
-    # string
     return value_str
 
 def ask_fastflags():
@@ -166,7 +150,6 @@ def ask_fastflags():
         clear()
         print(Fore.YELLOW + "FastFlags Configuration")
         fastflags = load_fastflags()
-        
         if fastflags:
             print(Fore.CYAN + "Current FFlags:")
             for i, (k, v) in enumerate(fastflags.items(), 1):
@@ -174,17 +157,14 @@ def ask_fastflags():
                 print(Fore.YELLOW + f" {i}. {k} = {v} ({value_type})")
         else:
             print(Fore.MAGENTA + "No fflags set yet")
-        
         print(Fore.GREEN + "\nOptions:")
         print("1. Add FastFlag")
-        print("2. Remove FastFlag") 
+        print("2. Remove FastFlag")
         print("3. Clear all FastFlags")
         print("4. Apply FastFlags")
         print("5. Import FastFlags from JSON")
         print("0. Back to main menu")
-        
         choice = input(Fore.WHITE + "\nEnter choice: ").strip()
-        
         if choice == "1":
             add_fastflag(fastflags)
         elif choice == "2":
@@ -213,23 +193,19 @@ def add_fastflag(fastflags):
     print(Fore.CYAN + "Tip: Values are auto-converted.")
     print(Fore.CYAN + "Common example:")
     print(Fore.YELLOW + "  FFlagDebugGraphicsDisableMetal = true")
-    
     key = input(Fore.WHITE + "\nKey: ").strip()
     if not key:
         print(Fore.RED + "[*] Cancelled - no key provided")
         press_any_key()
         return
-    
     value_input = input(Fore.WHITE + "Value: ").strip()
     if value_input == "":
         print(Fore.RED + "[*] Cancelled - no value provided")
         press_any_key()
         return
-    
     value = auto_detect_value_type(value_input)
     fastflags[key] = value
     save_fastflags(fastflags)
-    
     value_type = type(value).__name__
     print(Fore.GREEN + f"[*] Added FastFlag: {key} = {value} ({value_type})")
     press_any_key()
@@ -239,17 +215,14 @@ def remove_fastflag(fastflags):
         print(Fore.YELLOW + "[*] No FastFlags to remove")
         press_any_key()
         return
-    
     print(Fore.YELLOW + "\nRemove FastFlag:")
     key = input(Fore.WHITE + "Enter key to remove: ").strip()
-    
     if key in fastflags:
         del fastflags[key]
         save_fastflags(fastflags)
         print(Fore.GREEN + f"[*] Removed FastFlag: {key}")
     else:
         print(Fore.RED + f"[!] FastFlag '{key}' not found")
-    
     press_any_key()
 
 def clear_fastflags():
@@ -265,7 +238,6 @@ def import_fastflags():
     print(Fore.CYAN + "\nImport FastFlags from JSON:")
     print(Fore.YELLOW + "Example format: {\"FFlagDebugGraphicsDisableMetal\": true, \"DFIntTaskSchedulerTargetFps\": 144}")
     print(Fore.YELLOW + "Paste JSON content and press Enter twice when done:")
-    
     lines = []
     empty_count = 0
     while True:
@@ -277,88 +249,66 @@ def import_fastflags():
         else:
             empty_count = 0
         lines.append(line)
-    
-    # idk waht this does smb told me to addd
     while lines and lines[-1] == "":
         lines.pop()
-    
     json_text = "\n".join(lines)
-    
     if not json_text.strip():
         print(Fore.YELLOW + "[*] No content provided")
         press_any_key()
         return
-    
     try:
         imported_flags = json.loads(json_text)
         if not isinstance(imported_flags, dict):
             print(Fore.RED + "[!] JSON must be an object/dictionary")
             press_any_key()
             return
-        
         current_flags = load_fastflags()
         current_flags.update(imported_flags)
         save_fastflags(current_flags)
-        
         print(Fore.GREEN + f"[*] Imported {len(imported_flags)} FastFlag(s)")
         for k, v in imported_flags.items():
             print(Fore.CYAN + f"  + {k} = {v}")
-            
     except json.JSONDecodeError as e:
         print(Fore.RED + f"[!] Invalid JSON format: {e}")
-    
     press_any_key()
 
 def debug():
     clear()
     sys_info = get_system_info()
     print(Fore.MAGENTA + "Debug info")
-
-    # check paths
-    base_paths = get_installation_paths()
-    
-    print(Fore.CYAN + "Checking installation paths:")
-    for base_path in base_paths:
-        if os.path.exists(base_path):
-            print(Fore.GREEN + f"  ✓ Found: {base_path}")
-            versions_path = os.path.join(base_path, "Versions")
-            if os.path.exists(versions_path):
-                versions = [d for d in os.listdir(versions_path) if os.path.isdir(os.path.join(versions_path, d))]
-                for version in versions:
-                    print(Fore.YELLOW + f"    - Version: {version}")
+    print(Fore.CYAN + "Checking installation roots:")
+    roots = get_version_roots()
+    for root in roots:
+        if os.path.isdir(root):
+            print(Fore.GREEN + f"  ✓ Found: {root}")
+            versions = [d for d in glob.glob(os.path.join(root, "*")) if os.path.isdir(d)]
+            for version in versions:
+                print(Fore.YELLOW + f"    - Version: {os.path.basename(version)}")
         else:
-            print(Fore.RED + f"  ✗ Not found: {base_path}")
-    
-    # check ClientSettings
-    exe_paths = get_installation_paths()
-    
+            print(Fore.RED + f"  ✗ Not found: {root}")
     print(Fore.CYAN + f"\nClientSettings status:")
-    for base_path in exe_paths:
-        if os.path.exists(base_path):
-            for folder in ["2020L", "2021M"]:
-                folder_path = os.path.join(base_path, folder)
-                if os.path.exists(folder_path):
-                    client_settings_dir = os.path.join(folder_path, "ClientSettings")
-                    settings_file = os.path.join(client_settings_dir, "ClientAppSettings.json")
-                    print(Fore.YELLOW + f"{folder} ClientSettings: {settings_file}")
-                    if os.path.exists(settings_file):
-                        print(Fore.GREEN + "  ✓ Exists")
-                        try:
-                            with open(settings_file, 'r') as f:
-                                settings = json.load(f)
-                            print(Fore.CYAN + f"  Active FastFlags: {len(settings)}")
-                            if settings:
-                                print(Fore.YELLOW + "  Current flags:")
-                                for k, v in list(settings.items())[:3]:  # Show first 3
-                                    print(Fore.CYAN + f"    {k} = {v}")
-                                if len(settings) > 3:
-                                    print(Fore.CYAN + f"    ... and {len(settings) - 3} more")
-                        except Exception as e:
-                            print(Fore.RED + f"  ✗ Error reading: {e}")
-                    else:
-                        print(Fore.RED + "  ✗ Not found")
-
-    # fastflags file
+    any_found = False
+    for client_dir, settings_file, folder in get_clientsettings_targets():
+        any_found = True
+        print(Fore.YELLOW + f"{folder} ClientSettings: {settings_file}")
+        if os.path.exists(settings_file):
+            print(Fore.GREEN + "  ✓ Exists")
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                print(Fore.CYAN + f"  Active FastFlags: {len(settings)}")
+                if settings:
+                    print(Fore.YELLOW + "  Current flags:")
+                    for k, v in list(settings.items())[:3]:
+                        print(Fore.CYAN + f"    {k} = {v}")
+                    if len(settings) > 3:
+                        print(Fore.CYAN + f"    ... and {len(settings) - 3} more")
+            except Exception as e:
+                print(Fore.RED + f"  ✗ Error reading: {e}")
+        else:
+            print(Fore.RED + "  ✗ Not found")
+    if not any_found:
+        print(Fore.RED + "  ✗ No ClientSettings targets found")
     print(Fore.CYAN + f"\nLocal FastFlags file: {FASTFLAGS_FILE}")
     if os.path.exists(FASTFLAGS_FILE):
         print(Fore.GREEN + "  ✓ Exists")
@@ -369,8 +319,6 @@ def debug():
             print(Fore.RED + "  ✗ Error reading local file")
     else:
         print(Fore.RED + "  ✗ Not found")
-
-    # Wine check for non-Windows systems
     if not sys_info['is_windows']:
         print(Fore.CYAN + f"\nWine Configuration:")
         try:
@@ -381,16 +329,13 @@ def debug():
                 wine_version = subprocess.check_output(["wine", "--version"], stderr=subprocess.DEVNULL).decode().strip()
                 print(Fore.GREEN + f"  ✓ Wine installed: {wine_version}")
             except:
-                print(Fore.RED + "  ✗ Wine not found - required for running Windows executables") # BRO I KEEP SPENDING 5 MINUTES TRYING TO FIND THESE SYMBOLS
-
+                print(Fore.RED + "  ✗ Wine not found - required for running Windows executables")
     print(Fore.CYAN + f"\nSystem Information:")
     print(Fore.YELLOW + f"OS: {platform.system()} {platform.release()}")
     print(Fore.YELLOW + f"Architecture: {platform.machine()}")
     print(Fore.YELLOW + f"CPU: {platform.processor() or 'Unknown'}")
     print(Fore.YELLOW + f"Python: {sys.version.split()[0]}")
-    
     if sys_info['is_linux']:
-        # distro info for the linux people
         try:
             with open('/etc/os-release', 'r') as f:
                 os_info = f.read()
@@ -401,7 +346,6 @@ def debug():
                         break
         except:
             pass
-
     print(Fore.MAGENTA + "=" * 50)
     press_any_key()
 
@@ -409,7 +353,6 @@ def main_menu():
     while True:
         clear()
         sys_info = get_system_info()
-
         gradient = [
             (7, 200, 249),
             (5, 157, 230),
@@ -417,7 +360,6 @@ def main_menu():
             (3, 98, 210),
             (2, 74, 200),
         ]
-
         ascii_logo = [
             "    ** **                         ",
             "   / //_/___  _________  ____  ___ ",
@@ -425,18 +367,13 @@ def main_menu():
             " / /| / /*/ / /  / /_/ / / / /  __/",
             "/_/ |_\\____/_/   \\____/_/ /_/\\___/"
         ]
-
         for (r, g, b), line in zip(gradient, ascii_logo):
             print(f"\033[38;2;{r};{g};{b}m{line}\033[0m")
-
         print(Fore.BLUE + "Made with <3 by usertest on Korone")
-        
-        # platform info
         platform_name = "Windows" if sys_info['is_windows'] else ("Linux" if sys_info['is_linux'] else ("macOS" if sys_info['is_macos'] else "Unknown"))
         print(Fore.CYAN + f"Running on: {platform_name}")
         if not sys_info['is_windows']:
             print(Fore.YELLOW + "Note: Wine is required for Windows executables")
-        
         print()
         print(Fore.YELLOW + "Select your option:")
         print(Fore.GREEN + "1 - 2017 (WIP)")
@@ -445,9 +382,7 @@ def main_menu():
         print(Fore.GREEN + "4 - 2021")
         print(Fore.GREEN + "5 - Set FastFlags")
         print(Fore.RED + "0 - Exit")
-        
         choice = input(Fore.WHITE + "\nEnter your choice: ")
-        
         if choice == "1":
             wip_message("2017")
         elif choice == "2":
@@ -475,11 +410,7 @@ def wip_message(version):
 def launch_version(folder):
     clear()
     sys_info = get_system_info()
-    
-    # check paths
     paths = get_executable_paths(folder)
-
-    # Apply FastFlags
     fastflags = load_fastflags()
     if fastflags:
         print(Fore.CYAN + f"[*] Applying {len(fastflags)} FastFlag(s)...")
@@ -489,30 +420,29 @@ def launch_version(folder):
             print(Fore.RED + "[!] Failed to apply FastFlags")
     else:
         print(Fore.YELLOW + "[*] No FastFlags configured")
-
     print(Fore.CYAN + f"Launching {folder}...")
-
     exe_path = None
     for path in paths:
         if os.path.isfile(path):
             exe_path = path
             break
-    # idk i just copied some stuff of stack overflow
     if exe_path:
         try:
             if sys_info['is_windows']:
                 subprocess.Popen([exe_path, "--app"])
-            elif sys_info['is_linux']:
-                subprocess.Popen([
-                    "env",
-                    "__NV_PRIME_RENDER_OFFLOAD=1",
-                    "__GLX_VENDOR_LIBRARY_NAME=nvidia",
-                    "wine64", exe_path, "--app"
-                ])
-            elif sys_info['is_macos']:
-                # macOS with Wine
-                subprocess.Popen(["wine64", exe_path, "--app"])
-            
+            else:
+                env = os.environ.copy()
+                if sys_info['is_linux']:
+                    env.update({
+                        "__NV_PRIME_RENDER_OFFLOAD": "1",
+                        "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+                    })
+                wine_cmd = "wine64"
+                try:
+                    subprocess.check_output([wine_cmd, "--version"], stderr=subprocess.DEVNULL)
+                except Exception:
+                    wine_cmd = "wine"
+                subprocess.Popen([wine_cmd, exe_path, "--app"], env=env)
             print(Fore.GREEN + "[*] Launch successful!")
         except Exception as e:
             print(Fore.RED + f"Error while launching:\n{e}")
@@ -523,13 +453,11 @@ def launch_version(folder):
         print(Fore.YELLOW + "Searched paths:")
         for path in paths:
             print(Fore.YELLOW + f"  - {path}")
-        
         if not sys_info['is_windows']:
             print(Fore.CYAN + "\nTroubleshooting tips:")
             print(Fore.YELLOW + "- Make sure Wine is installed")
             print(Fore.YELLOW + "- Verify your Wine prefix is configured")
             print(Fore.YELLOW + "- Check that the game is installed in the Wine prefix")
-
     press_any_key()
 
 if __name__ == "__main__":
