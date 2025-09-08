@@ -28,8 +28,22 @@
 ---
 
 ## 🚀 Installation
-- Go to the [Releases](https://github.com/reprovision/koroneStrap/releases) tab and download **`koroneStrap.exe`**  
-- Or run **`koroneStrap.py`** directly from the repo
+- Go to the [Releases](https://github.com/reprovision/koroneStrap/releases) tab and download **`koroneStrap.exe`**
+<details open>
+
+<summary>With the terminal</summary>
+
+Install the required packages from the requirements.txt file by using:
+```
+pip3 install requirements.txt
+```
+
+Run `koroneStrap.py` by executing the command:
+```
+python3 koroneStrap.py
+```
+
+</details>
 
 For Linux:  
 - Install [Korone](https://example.com) via [Wine](https://www.winehq.org).
