@@ -35,7 +35,7 @@
 
 Install the required packages from the requirements.txt file by using:
 ```
-pip3 install requirements.txt
+pip3 install -r requirements.txt
 ```
 
 Run `koroneStrap.py` by executing the command:
