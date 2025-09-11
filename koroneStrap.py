@@ -4,11 +4,15 @@ import sys
 import json
 import platform
 import glob
+import urllib.request
+import urllib.error
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
 FASTFLAGS_FILE = "fastFlags.json"
+BOOTSTRAPPER_URL = "https://setup.pekora.zip/PekoraPlayerLauncher.exe"
+BOOTSTRAPPER_FILE = "PekoraPlayerLauncher.exe"
 
 if os.name == "nt":
     import msvcrt
@@ -121,6 +125,99 @@ def apply_fastflags(fastflags):
         except Exception as e:
             print(Fore.RED + f"[!] Failed to write to {folder}: {e}")
     return success
+
+def download_bootstrapper():
+    clear()
+    print(Fore.CYAN + "Download/Update Bootstrapper")
+    print(Fore.YELLOW + f"Downloading from: {BOOTSTRAPPER_URL}")
+    print(Fore.YELLOW + f"Saving to: {BOOTSTRAPPER_FILE}")
+    
+    # check if bootstrapper exists in folder
+    if os.path.exists(BOOTSTRAPPER_FILE):
+        print(Fore.YELLOW + f"[!] {BOOTSTRAPPER_FILE} already exists")
+        overwrite = input(Fore.WHITE + "Do you want to overwrite it? (y/N): ").strip().lower()
+        if overwrite != 'y':
+            print(Fore.YELLOW + "[*] Download cancelled")
+            press_any_key()
+            return
+    
+    try:
+        print(Fore.CYAN + "[*] Starting download...")
+        
+        # progress indication
+        def show_progress(block_num, block_size, total_size):
+            if total_size > 0:
+                downloaded = block_num * block_size
+                percent = min(100, (downloaded * 100) // total_size)
+                mb_downloaded = downloaded / (1024 * 1024)
+                mb_total = total_size / (1024 * 1024)
+                print(f"\r{Fore.CYAN}[*] Progress: {percent}% ({mb_downloaded:.1f}MB / {mb_total:.1f}MB)", end="", flush=True)
+        
+        urllib.request.urlretrieve(BOOTSTRAPPER_URL, BOOTSTRAPPER_FILE, reporthook=show_progress)
+        print()  # new lines
+        
+        # check dl
+        if os.path.exists(BOOTSTRAPPER_FILE):
+            file_size = os.path.getsize(BOOTSTRAPPER_FILE)
+            if file_size > 0:
+                print(Fore.GREEN + f"[*] Download completed successfully!")
+                print(Fore.CYAN + f"[*] File size: {file_size / (1024 * 1024):.1f}MB")
+                print(Fore.CYAN + f"[*] Location: {os.path.abspath(BOOTSTRAPPER_FILE)}")
+                
+                # Ask if user wants to run the bootstrapper
+                run_now = input(Fore.WHITE + "\nDo you want to run the bootstrapper now? (y/N): ").strip().lower()
+                if run_now == 'y':
+                    launch_bootstrapper()
+            else:
+                print(Fore.RED + "[!] Downloaded file is empty")
+                os.remove(BOOTSTRAPPER_FILE)
+        else:
+            print(Fore.RED + "[!] Download failed - file not found")
+            
+    except urllib.error.HTTPError as e:
+        print(Fore.RED + f"[!] HTTP Error: {e.code} - {e.reason}")
+    except urllib.error.URLError as e:
+        print(Fore.RED + f"[!] URL Error: {e.reason}")
+    except Exception as e:
+        print(Fore.RED + f"[!] Download failed: {e}")
+    
+    press_any_key()
+
+def launch_bootstrapper():
+    if not os.path.exists(BOOTSTRAPPER_FILE):
+        print(Fore.RED + f"[!] {BOOTSTRAPPER_FILE} not found")
+        print(Fore.YELLOW + "[*] Please download the bootstrapper first")
+        return
+    
+    try:
+        sys_info = get_system_info()
+        print(Fore.CYAN + f"[*] Launching {BOOTSTRAPPER_FILE}...")
+        
+        if sys_info['is_windows']:
+            subprocess.Popen([BOOTSTRAPPER_FILE])
+        else:
+            # wine
+            env = os.environ.copy()
+            if sys_info['is_linux']:
+                env.update({
+                    "__NV_PRIME_RENDER_OFFLOAD": "1",
+                    "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+                })
+            
+            wine_cmd = "wine64"
+            try:
+                subprocess.check_output([wine_cmd, "--version"], stderr=subprocess.DEVNULL)
+            except Exception:
+                wine_cmd = "wine"
+            
+            subprocess.Popen([wine_cmd, BOOTSTRAPPER_FILE], env=env)
+        
+        print(Fore.GREEN + "[*] Bootstrapper launched successfully!")
+        
+    except Exception as e:
+        print(Fore.RED + f"[!] Failed to launch bootstrapper: {e}")
+        if not sys_info['is_windows']:
+            print(Fore.YELLOW + "[*] Make sure Wine is installed and configured properly")
 
 
 # koroneStrap
@@ -319,6 +416,16 @@ def debug():
             print(Fore.RED + "  ✗ Error reading local file")
     else:
         print(Fore.RED + "  ✗ Not found")
+    
+    # check if theres bootstrapper
+    print(Fore.CYAN + f"\nBootstrapper status:")
+    if os.path.exists(BOOTSTRAPPER_FILE):
+        print(Fore.GREEN + f"  ✓ Found: {BOOTSTRAPPER_FILE}")
+        file_size = os.path.getsize(BOOTSTRAPPER_FILE)
+        print(Fore.CYAN + f"  Size: {file_size / (1024 * 1024):.1f}MB")
+    else:
+        print(Fore.RED + f"  ✗ Not found: {BOOTSTRAPPER_FILE}")
+    
     if not sys_info['is_windows']:
         print(Fore.CYAN + f"\nWine Configuration:")
         try:
@@ -381,6 +488,7 @@ def main_menu():
         print(Fore.GREEN + "3 - 2020")
         print(Fore.GREEN + "4 - 2021")
         print(Fore.GREEN + "5 - Set FastFlags")
+        print(Fore.BLUE + "6 - Download/Update Bootstrapper")
         print(Fore.RED + "0 - Exit")
         choice = input(Fore.WHITE + "\nEnter your choice: ")
         if choice == "1":
@@ -393,6 +501,8 @@ def main_menu():
             launch_version("2021M")
         elif choice == "5":
             ask_fastflags()
+        elif choice == "6":
+            download_bootstrapper()
         elif choice == "debug":
             debug()
         elif choice == "0":
