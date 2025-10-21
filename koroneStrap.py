@@ -204,11 +204,22 @@ def launch_bootstrapper():
                     "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
                 })
             
-            wine_cmd = "wine64"
-            try:
-                subprocess.check_output([wine_cmd, "--version"], stderr=subprocess.DEVNULL)
-            except Exception:
-                wine_cmd = "wine"
+            possible_wines = [
+                "/opt/homebrew/bin/wine64",
+                "/opt/homebrew/bin/wine",
+                "wine64",
+                "wine"
+            ]
+
+            wine_cmd = None
+            for cmd in possible_wines:
+                if os.path.exists(cmd) or subprocess.call(f"command -v {cmd}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                    wine_cmd = cmd
+                    break
+
+            if wine_cmd is None:
+                print(Fore.RED + "[!] Wine not found. Please install via Homebrew: brew install --cask wine-stable")
+                return
             
             subprocess.Popen([wine_cmd, BOOTSTRAPPER_FILE], env=env)
         
