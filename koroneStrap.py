@@ -39,13 +39,15 @@ def get_system_info():
 def get_version_roots():
     sys_info = get_system_info()
     roots = []
+    
+    user = os.getenv('USER', 'user')
+    
     if sys_info['is_windows']:
         roots.extend([
             os.path.expandvars(r"%localappdata%\ProjectX\Versions"),
             os.path.expandvars(r"%localappdata%\Pekora\Versions"),
         ])
     elif sys_info['is_linux']:
-        user = os.getenv('USER', 'user')
         roots.extend([
             os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
             os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
@@ -53,10 +55,9 @@ def get_version_roots():
             os.path.expanduser(f"~/.local/share/wineprefixes/projectx/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
         ])
     elif sys_info['is_macos']:
-        # please work pleaase work please work
         roots.extend([
-            "/Users/alex/.wine/drive_c/users/alex/AppData/Local/ProjectX/Versions",
-            "/Users/alex/.wine/drive_c/users/alex/AppData/Local/Pekora/Versions",
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
+            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
         ])
         roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/ProjectX/Versions")))
         roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/Pekora/Versions")))
