@@ -53,10 +53,10 @@ def get_version_roots():
             os.path.expanduser(f"~/.local/share/wineprefixes/projectx/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
         ])
     elif sys_info['is_macos']:
-        user = os.getenv('USER', 'user')
+        # please work pleaase work please work
         roots.extend([
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/ProjectX/Versions"),
-            os.path.expanduser(f"~/.wine/drive_c/users/{user}/AppData/Local/Pekora/Versions"),
+            "/Users/alex/.wine/drive_c/users/alex/AppData/Local/ProjectX/Versions",
+            "/Users/alex/.wine/drive_c/users/alex/AppData/Local/Pekora/Versions",
         ])
         roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/ProjectX/Versions")))
         roots.extend(glob.glob(os.path.expanduser(f"~/Library/Application Support/CrossOver/Bottles/*/drive_c/users/{user}/AppData/Local/Pekora/Versions")))
