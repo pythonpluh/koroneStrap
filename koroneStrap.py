@@ -39,7 +39,7 @@ def get_system_info():
 def get_version_roots():
     sys_info = get_system_info()
     roots = []
-
+    
     user = os.getenv('USER', 'user')
     
     if sys_info['is_windows']:
@@ -566,7 +566,7 @@ def launch_version(folder):
                 if wine_cmd is None:
                     print(Fore.RED + "[!] Wine not found")
                     return
-                subprocess.Popen([wine_cmd, exe_path], env=env)
+                subprocess.Popen([wine_cmd, exe_path, "--app"], env=env)
             print(Fore.GREEN + "[*] Launch successful!")
         except Exception as e:
             print(Fore.RED + f"Error while launching:\n{e}")
