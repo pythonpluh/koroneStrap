@@ -27,8 +27,13 @@ jobs:
       - name: build app
         run: python setup.py py2app
 
-      - name: upload
+      - name: zip
+        run: |
+          cd dist
+          zip -r KoroneStrap.zip KoroneStrap.app
+
+      - name: upload build
         uses: actions/upload-artifact@v4
         with:
           name: koronestrap macos build
-          path: dist/KoroneStrap.app
+          path: dist/KoroneStrap.zip
